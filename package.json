@@ -1,0 +1,9 @@
+{
+  "name": "webrtc-sample-node.js",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "express": "4.17.1",
+    "ejs": "3.1.3"
+  }
+}
