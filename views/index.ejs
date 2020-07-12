@@ -97,11 +97,22 @@
     // startStream();
 
     io = io.connect(); // connect to socket.io server
-    io.emit('ready', ROOM); // emit a message(type of 'ready') to the room
+    io.emit('ready', ROOM); // emit a message(type of 'ready') to the room(server) io.emit('MESSAGE TYPE', DATA)
 
+    // ANNOUNCE
     io.on('announce', (data) => { // when received message type of 'announce'
       displayMessage(data.message);
     })
+
+    // MESSAGE
+    io.on('message', (data) => {
+      displayMessage(data.author + ": " + data.message);
+    })
+
+    sendMessage.addEventListener('click', (ev) => {
+      io.emit('send', {"author": myName.value, "message": myMessage.value, "room": ROOM});
+      ev.preventDefault();
+    }, false);
 
     function displayMessage(message) { // update innerHTML (like appending a message)
       chatArea.innerHTML = chatArea.innerHTML + "</br>" + message;

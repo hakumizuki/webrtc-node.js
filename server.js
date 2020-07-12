@@ -1,3 +1,5 @@
+// ※このファイルを書き換えたらサーバーを再起動
+
 var express = require('express.io');
 var app = express();
 app.http().io();
@@ -12,9 +14,16 @@ app.get('/', (req, res) => {
 
 // when someone new entered chat room
 app.io.route('ready', (req) => {
-  req.io.join(req.data) // joining room name specified by req.data into route
+  req.io.join(req.data) // joining room name specified by req.data into route. in this case, req.data = ROOM
   app.io.room(req.data).broadcast('announce', { // send broadcast message to the room(in this case, type of the message is 'announce')
     message: 'New client in the ' + req.data + ' room.'
+  })
+})
+
+app.io.route('send', (req) => {
+  app.io.room(req.data.room).broadcast('message', {
+    message: req.data.message,
+    author: req.data.author
   })
 })
 
