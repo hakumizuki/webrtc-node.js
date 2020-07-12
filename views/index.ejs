@@ -10,59 +10,59 @@
   </div>
   <p><button id="takeProfilePicture" type="button" autofocus="true">プロフィール画像を作る</button></p>
   <video id="videoTag" autoplay></video>
-  <canvas id="profilePicCanvas" style="display: none;"></canvas>
+  <!-- <canvas id="profilePicCanvas" style="display: none;"></canvas>
   <div>
     <img id="profilePictureOutput">
-  </div>
+  </div> -->
 
   <script>
     // ELEMENTS
     var videoArea = document.querySelector("video");
     var videoSelect = document.getElementById('camera');
-    var profilePicCanvas = document.getElementById('profilePicCanvas');
-    var profilePictureOutput = document.getElementById('profilePictureOutput');
-    var takePicButton = document.getElementById('takeProfilePicture');
-    var videoTag = document.getElementById('videoTag');
+    // var profilePicCanvas = document.getElementById('profilePicCanvas');
+    // var profilePictureOutput = document.getElementById('profilePictureOutput');
+    // var takePicButton = document.getElementById('takeProfilePicture');
+    // var videoTag = document.getElementById('videoTag');
 
-    // VALUES
-    var width = 240; // Desired width of the profile picture
-    var height = 0; // Calculated later based on image ratio
-    var streaming = false; // Used to determine when the video has loaded
+    // // VALUES
+    // var width = 240; // Desired width of the profile picture
+    // var height = 0; // Calculated later based on image ratio
+    // var streaming = false; // Used to determine when the video has loaded
 
-    takePicButton.addEventListener('click', (ev) => {
-      takeProfilePic();
-      ev.preventDefault();
-    }, false);
+    // takePicButton.addEventListener('click', (ev) => {
+    //   takeProfilePic();
+    //   ev.preventDefault();
+    // }, false);
 
-    videoTag.addEventListener('canplay', (ev) => {
-      if (!streaming) {
-        height = videoTag.videoHeight / (videoTag.videoWidth/width);
-      }
+    // videoTag.addEventListener('canplay', (ev) => {
+    //   if (!streaming) {
+    //     height = videoTag.videoHeight / (videoTag.videoWidth/width);
+    //   }
 
-      // when browser couldnt read height
-      if (isNaN(height)) {
-        height = width / (4/3);
-      }
+    //   // when browser couldnt read height
+    //   if (isNaN(height)) {
+    //     height = width / (4/3);
+    //   }
 
-      // setAttributes
-      videoTag.setAttribute('width', width);
-      videoTag.setAttribute('height', height);
-      profilePicCanvas.setAttribute('width', width);
-      profilePicCanvas.setAttribute('height', height);
-      streaming = true;
-    });
+    //   // setAttributes
+    //   videoTag.setAttribute('width', width);
+    //   videoTag.setAttribute('height', height);
+    //   profilePicCanvas.setAttribute('width', width);
+    //   profilePicCanvas.setAttribute('height', height);
+    //   streaming = true;
+    // });
 
-    function takeProfilePic() {
-      var context = profilePicCanvas.getContext('2d');
-      if (width && height) {
-        profilePicCanvas.width = width;
-        profilePicCanvas.height = height;
-        context.drawImage(videoTag, 0, 0, width, height);
+    // function takeProfilePic() {
+    //   var context = profilePicCanvas.getContext('2d');
+    //   if (width && height) {
+    //     profilePicCanvas.width = width;
+    //     profilePicCanvas.height = height;
+    //     context.drawImage(videoTag, 0, 0, width, height);
 
-        var data = profilePicCanvas.toDataURL('image/png');
-        profilePictureOutput.setAttribute('src', data);
-      }
-    }
+    //     var data = profilePicCanvas.toDataURL('image/png');
+    //     profilePictureOutput.setAttribute('src', data);
+    //   }
+    // }
 
     // MediaStreamTrack.getSources(getCameras); // 使用不可
 
@@ -103,17 +103,19 @@
       // basic constraints
       var constraints = {
         audio: false,
-        video: {
-          mandatory: { // Change size HERE
-            maxWidth: 240,
-            maxHeight: 240
-            // minW, minH are also available
-            // choose size by Chrome resolutions
-          },
-          option: [{
-            sourceId: videoSource
-          }]
-      }};
+        video: false
+        // video: {
+        //   mandatory: { // Change size HERE
+        //     maxWidth: 240,
+        //     maxHeight: 240
+        //     // minW, minH are also available
+        //     // choose size by Chrome resolutions
+        //   },
+        //   option: [{
+        //     sourceId: videoSource
+        //   }]
+        // }
+    };
       navigator.getUserMedia(constraints, onSuccess, onError);
     }
 
@@ -122,7 +124,7 @@
       console.log("Success! We have a stream!!");
       // videoArea.src = window.URL.createObjectURL(stream); ERROR::NOT SUPPORTED
       videoArea.srcObject = stream; // Worked:)
-      videoArea.classList.add('grayscale_filter'); // 色フィルター for fun
+      // videoArea.classList.add('grayscale_filter'); // 色フィルター for fun
       videoArea.play();
     }
 
