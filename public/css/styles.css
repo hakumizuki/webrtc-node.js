@@ -4,3 +4,8 @@
   -webkit-transform: scaleX(-1); /* 反転 */
   transform: scaleX(-1);
 }
+
+#profilePictureOutput {
+  -webkit-transform: scaleX(-1);
+  transform: scaleX(-1);
+}
