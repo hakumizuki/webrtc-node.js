@@ -2,26 +2,76 @@
 <html lang="en">
 <head>
   <title>WebRTC_sample_node.js</title>
+  <link rel="stylesheet" type="text/css" href="css/styles.css">
 </head>
 <body>
+  <div>
+    Video: <select id="camera"></select>
+  </div>
   <video autoplay></video>
 
   <script>
-    // reference
-    navigator.getUserMedia = navigator.getUserMedia || navigetor.webkitGetUserMedia == navigator.mozGetUserMedia;
-
-    // basic constraints
-    var constraints = {audio: true, video: true};
-
     var videoArea = document.querySelector("video");
+    var videoSelect = document.getElementById('camera');
+    // MediaStreamTrack.getSources(getCameras); // 使用不可
 
-    navigator.getUserMedia(constraints, onSuccess, onError);
-    
+    // get devices
+    navigator.mediaDevices.enumerateDevices()
+    .then(function(devices) {
+      devices.forEach(function(device) {
+        console.log(device.kind + ": " + device.label +
+                    " id = " + device.deviceId);
+      });
+      getCameras(devices);
+    })
+    .catch(function(err) {
+      console.log(err.name + ": " + err.message);
+    });
+
+    videoSelect.onchange = startStream;
+
+    startStream();
+
+    function getCameras(devices) { // 使用可能なカメラがselect tag に表示される
+      for (var i = 0; i !== devices.length; i++) {
+        var device = devices[i];
+        var option = document.createElement('option');
+        option.value = device.deviseId;
+        if (device.kind === 'videoinput') {
+          option.text = device.label || 'camera' + (videoSelect.length + 1);
+          videoSelect.appendChild(option);
+        }
+      }
+    }
+
+    function startStream() {
+      // reference
+      navigator.getUserMedia = navigator.getUserMedia || navigetor.webkitGetUserMedia || navigator.mozGetUserMedia;
+      // video source
+      var videoSource = videoSelect.value;
+      // basic constraints
+      var constraints = {
+        audio: false,
+        video: {
+          mandatory: { // Change size HERE
+            maxWidth: 640,
+            maxHeight: 360
+            // minW, minH are also available
+            // choose size by Chrome resolutions
+          },
+          option: [{
+            sourceId: videoSource
+          }]
+      }};
+      navigator.getUserMedia(constraints, onSuccess, onError);
+    }
+
     // success
     function onSuccess(stream) {
       console.log("Success! We have a stream!!");
       // videoArea.src = window.URL.createObjectURL(stream); ERROR::NOT SUPPORTED
       videoArea.srcObject = stream; // Worked:)
+      videoArea.classList.add('grayscale_filter'); // 色フィルター for fun
       videoArea.play();
     }
 
