@@ -3,6 +3,7 @@
 <head>
   <title>WebRTC_sample_node.js</title>
   <link rel="stylesheet" type="text/css" href="css/styles.css">
+  <script src="/socket.io/socket.io.js"></script> <!-- socket.io setting -->
 </head>
 <body>
   <div>
@@ -10,6 +11,12 @@
   </div>
   <p><button id="takeProfilePicture" type="button" autofocus="true">プロフィール画像を作る</button></p>
   <video id="videoTag" autoplay></video>
+  <div>
+    <label>Your Name:</label><input id="myName" type="text">
+    <label>Message:</label><input id="myMessage" type="text">
+    <input id="sendMessage" type="submit">
+    <div id="chatArea">Message Output:</br></div>
+  </div>
   <!-- <canvas id="profilePicCanvas" style="display: none;"></canvas>
   <div>
     <img id="profilePictureOutput">
@@ -19,6 +26,12 @@
     // ELEMENTS
     var videoArea = document.querySelector("video");
     var videoSelect = document.getElementById('camera');
+    var myName = document.getElementById('myName');
+    var myMessage = document.getElementById('myMessage');
+    var sendMessage = document.getElementById('sendMessage');
+    var chatArea = document.getElementById('chatArea');
+
+    var ROOM = "chat"; // 本来は個別のルームネームを設定するところ
     // var profilePicCanvas = document.getElementById('profilePicCanvas');
     // var profilePictureOutput = document.getElementById('profilePictureOutput');
     // var takePicButton = document.getElementById('takeProfilePicture');
@@ -81,7 +94,18 @@
 
     videoSelect.onchange = startStream;
 
-    startStream();
+    // startStream();
+
+    io = io.connect(); // connect to socket.io server
+    io.emit('ready', ROOM); // emit a message(type of 'ready') to the room
+
+    io.on('announce', (data) => { // when received message type of 'announce'
+      displayMessage(data.message);
+    })
+
+    function displayMessage(message) { // update innerHTML (like appending a message)
+      chatArea.innerHTML = chatArea.innerHTML + "</br>" + message;
+    }
 
     function getCameras(devices) { // 使用可能なカメラがselect tag に表示される
       for (var i = 0; i !== devices.length; i++) {

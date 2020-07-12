@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
 app.io.route('ready', (req) => {
   req.io.join(req.data) // joining room name specified by req.data into route
   app.io.room(req.data).broadcast('announce', { // send broadcast message to the room(in this case, type of the message is 'announce')
-    message: 'New client in the' + req.data + 'room.'
+    message: 'New client in the ' + req.data + ' room.'
   })
 })
 
