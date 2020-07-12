@@ -4,6 +4,32 @@
   <title>WebRTC_sample_node.js</title>
 </head>
 <body>
-  <h1>Hello WebRTC!</h1>
+  <video autoplay></video>
+
+  <script>
+    // reference
+    navigator.getUserMedia = navigator.getUserMedia || navigetor.webkitGetUserMedia == navigator.mozGetUserMedia;
+
+    // basic constraints
+    var constraints = {audio: true, video: true};
+
+    var videoArea = document.querySelector("video");
+
+    navigator.getUserMedia(constraints, onSuccess, onError);
+    
+    // success
+    function onSuccess(stream) {
+      console.log("Success! We have a stream!!");
+      // videoArea.src = window.URL.createObjectURL(stream); ERROR::NOT SUPPORTED
+      videoArea.srcObject = stream; // Worked:)
+      videoArea.play();
+    }
+
+    // error
+    function onError(error) {
+      console.log("Error getting user media:", error);
+      console.log("カメラを許可してページを再読み込みしてください");
+    }
+  </script>
 </body>
 </html>
