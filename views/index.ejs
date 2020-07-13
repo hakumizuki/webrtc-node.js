@@ -5,106 +5,143 @@
   <link rel="stylesheet" type="text/css" href="css/styles.css">
   <script src="/socket.io/socket.io.js"></script> <!-- socket.io setting -->
 </head>
+
+
+
 <body>
-  <div>
+  <div id="cameraSelecter">
     Video: <select id="camera"></select>
   </div>
-  <p><button id="takeProfilePicture" type="button" autofocus="true">プロフィール画像を作る</button></p>
-  <video id="videoTag" autoplay></video>
+  <video id="myVideoArea" autoplay></video>
+  <video id="theirVideoArea" autoplay></video>
   <div>
     <label>Your Name:</label><input id="myName" type="text">
     <label>Message:</label><input id="myMessage" type="text">
     <input id="sendMessage" type="submit">
     <div id="chatArea">Message Output:</br></div>
+    <div id="signalingArea">Signaling Messages:</br></div>
   </div>
-  <!-- <canvas id="profilePicCanvas" style="display: none;"></canvas>
-  <div>
-    <img id="profilePictureOutput">
-  </div> -->
 
   <script>
     // ELEMENTS
-    var videoArea = document.querySelector("video");
-    var videoSelect = document.getElementById('camera');
+    var myVideoArea = document.getElementById('myVideoArea');
+    var theirVideoArea = document.getElementById('theirVideoArea');
     var myName = document.getElementById('myName');
     var myMessage = document.getElementById('myMessage');
     var sendMessage = document.getElementById('sendMessage');
     var chatArea = document.getElementById('chatArea');
+    var signalingArea = document.getElementById('signalingArea');
+    var configuration = {
+      'iceServers': [{
+        'url': 'stun:stun.l.google.com:19302'
+      }]
+    };
+    var rtcPeerConn;
 
     var ROOM = "chat"; // 本来は個別のルームネームを設定するところ
-    // var profilePicCanvas = document.getElementById('profilePicCanvas');
-    // var profilePictureOutput = document.getElementById('profilePictureOutput');
-    // var takePicButton = document.getElementById('takeProfilePicture');
-    // var videoTag = document.getElementById('videoTag');
-
-    // // VALUES
-    // var width = 240; // Desired width of the profile picture
-    // var height = 0; // Calculated later based on image ratio
-    // var streaming = false; // Used to determine when the video has loaded
-
-    // takePicButton.addEventListener('click', (ev) => {
-    //   takeProfilePic();
-    //   ev.preventDefault();
-    // }, false);
-
-    // videoTag.addEventListener('canplay', (ev) => {
-    //   if (!streaming) {
-    //     height = videoTag.videoHeight / (videoTag.videoWidth/width);
-    //   }
-
-    //   // when browser couldnt read height
-    //   if (isNaN(height)) {
-    //     height = width / (4/3);
-    //   }
-
-    //   // setAttributes
-    //   videoTag.setAttribute('width', width);
-    //   videoTag.setAttribute('height', height);
-    //   profilePicCanvas.setAttribute('width', width);
-    //   profilePicCanvas.setAttribute('height', height);
-    //   streaming = true;
-    // });
-
-    // function takeProfilePic() {
-    //   var context = profilePicCanvas.getContext('2d');
-    //   if (width && height) {
-    //     profilePicCanvas.width = width;
-    //     profilePicCanvas.height = height;
-    //     context.drawImage(videoTag, 0, 0, width, height);
-
-    //     var data = profilePicCanvas.toDataURL('image/png');
-    //     profilePictureOutput.setAttribute('src', data);
-    //   }
-    // }
-
-    // MediaStreamTrack.getSources(getCameras); // 使用不可
+    var SIGNAL_ROOM = "signal_room";
 
     // get devices
-    navigator.mediaDevices.enumerateDevices()
-    .then(function(devices) {
-      devices.forEach(function(device) {
-        console.log(device.kind + ": " + device.label +
-                    " id = " + device.deviceId);
-      });
-      getCameras(devices);
-    })
-    .catch(function(err) {
-      console.log(err.name + ": " + err.message);
-    });
-
-    videoSelect.onchange = startStream;
-
-    // startStream();
+    // navigator.mediaDevices.enumerateDevices()
+    // .then(function(devices) {
+    //   devices.forEach(function(device) {
+    //     console.log(device.kind + ": " + device.label +
+    //                 " id = " + device.deviceId);
+    //   });
+    // })
+    // .catch(function(err) {
+    //   console.log(err.name + ": " + err.message);
+    // });
 
     io = io.connect(); // connect to socket.io server
-    io.emit('ready', ROOM); // emit a message(type of 'ready') to the room(server) io.emit('MESSAGE TYPE', DATA)
 
-    // ANNOUNCE
+    // <- READY
+    io.emit('ready', {"chat_room": ROOM, "signal_room": SIGNAL_ROOM}); // emit a message(type of 'ready') to the room(server) io.emit('MESSAGE TYPE', DATA)
+
+    // <- SIGNAL
+    io.emit('signal', {"type":"user_here", "message":"Are you ready for a call?", "room":SIGNAL_ROOM});
+
+    // SIGNALING_MESSAGE <-
+    io.on('signaling_message', (data) => {
+      displaySignalMessage("Signal received: " + data.type);
+
+      // setup the RTC Peer Connection object
+      if (!rtcPeerConn) {
+        startSignaling();
+      }
+
+      if (data.type != "user_here") {
+        console.log(data);
+        var message = JSON.parse(data.message);
+        if (message.sdp) {
+          rtcPeerConn.setRemoteDescription(new RTCSessionDescription(message.sdp), () => {
+            // if we received an offer, we need to answer
+            if (rtcPeerConn.remoteDescription.type == 'offer') {
+              rtcPeerConn.createAnswer(sendLocalDesc, logError);
+            }
+          }, logError);
+        } else {
+          rtcPeerConn.addIceCandidate(new RTCIceCandidate(message.candidate));
+        }
+      }
+    });
+
+    function startSignaling() {
+      displaySignalMessage("starting signaling...");
+
+      rtcPeerConn = new webkitRTCPeerConnection(configuration);
+
+      // send any ice candidates to the other peer
+      rtcPeerConn.onicecandidate = (evt) => {
+        if (evt.candidate) {
+          io.emit('signal',{"type":"ice candidate", "message": JSON.stringify({'candidate': evt.candidate}), "room":SIGNAL_ROOM}); // JSON.stringify converts JS object or value into json string
+          displaySignalMessage("completed that ice candidate...");
+        }
+      };
+
+      // let the 'negotiationneeded' event trigger offer generation
+      rtcPeerConn.onnegotiationneeded = () => {
+        displaySignalMessage("on negotiation called");
+        rtcPeerConn.createOffer(sendLocalDesc, logError);
+      };
+
+      // once remote stream arrives, show it in the remote video element
+      rtcPeerConn.onaddstream = (evt) => {
+        displaySignalMessage("going to add their stream...");
+        console.log(evt.stream);
+        theirVideoArea.srcObject = evt.stream;
+      };
+
+      // get a local stream, show it in our video tag and add it to be sent
+      navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+      navigator.getUserMedia({
+        'audio': true,
+        'video': true
+      }, (stream) => {
+        displaySignalMessage("going to display my stream...");
+        console.log(stream);
+        myVideoArea.srcObject = stream;
+        rtcPeerConn.addStream(stream);
+      }, logError);
+    }
+
+    function sendLocalDesc(desc) {
+      rtcPeerConn.setLocalDescription(desc, () => {
+        displaySignalMessage("sending local description");
+        io.emit('signal',{"type":"SDP", "message": JSON.stringify({ 'sdp': rtcPeerConn.localDescription }), "room":SIGNAL_ROOM}); // send SDP
+      }, logError);
+    }
+
+    function logError(error) {
+      displaySignalMessage(error.name + ': ' + error.message);
+    }
+
+    // ANNOUNCE <-
     io.on('announce', (data) => { // when received message type of 'announce'
       displayMessage(data.message);
     })
 
-    // MESSAGE
+    // MESSAGE <-
     io.on('message', (data) => {
       displayMessage(data.author + ": " + data.message);
     })
@@ -118,56 +155,10 @@
       chatArea.innerHTML = chatArea.innerHTML + "</br>" + message;
     }
 
-    function getCameras(devices) { // 使用可能なカメラがselect tag に表示される
-      for (var i = 0; i !== devices.length; i++) {
-        var device = devices[i];
-        var option = document.createElement('option');
-        option.value = device.deviseId;
-        if (device.kind === 'videoinput') {
-          option.text = device.label || 'camera' + (videoSelect.length + 1);
-          videoSelect.appendChild(option);
-        }
-      }
+    function displaySignalMessage(message) { // update innerHTML (like appending a message)
+      signalingArea.innerHTML = signalingArea.innerHTML + "</br>" + message;
     }
 
-    function startStream() {
-      // reference
-      navigator.getUserMedia = navigator.getUserMedia || navigetor.webkitGetUserMedia || navigator.mozGetUserMedia;
-      // video source
-      var videoSource = videoSelect.value;
-      // basic constraints
-      var constraints = {
-        audio: false,
-        video: false
-        // video: {
-        //   mandatory: { // Change size HERE
-        //     maxWidth: 240,
-        //     maxHeight: 240
-        //     // minW, minH are also available
-        //     // choose size by Chrome resolutions
-        //   },
-        //   option: [{
-        //     sourceId: videoSource
-        //   }]
-        // }
-    };
-      navigator.getUserMedia(constraints, onSuccess, onError);
-    }
-
-    // success
-    function onSuccess(stream) {
-      console.log("Success! We have a stream!!");
-      // videoArea.src = window.URL.createObjectURL(stream); ERROR::NOT SUPPORTED
-      videoArea.srcObject = stream; // Worked:)
-      // videoArea.classList.add('grayscale_filter'); // 色フィルター for fun
-      videoArea.play();
-    }
-
-    // error
-    function onError(error) {
-      console.log("Error getting user media:", error);
-      console.log("カメラを許可してページを再読み込みしてください");
-    }
   </script>
 </body>
 </html>
