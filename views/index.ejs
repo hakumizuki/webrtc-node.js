@@ -31,6 +31,9 @@
     var sendMessage = document.getElementById('sendMessage');
     var chatArea = document.getElementById('chatArea');
     var signalingArea = document.getElementById('signalingArea');
+
+    var ROOM = "chat"; // 本来は個別のルームネームを設定するところ
+    var SIGNAL_ROOM = "signal_room";
     var configuration = {
       'iceServers': [{
         'url': 'stun:stun.l.google.com:19302'
@@ -38,20 +41,6 @@
     };
     var rtcPeerConn;
 
-    var ROOM = "chat"; // 本来は個別のルームネームを設定するところ
-    var SIGNAL_ROOM = "signal_room";
-
-    // get devices
-    // navigator.mediaDevices.enumerateDevices()
-    // .then(function(devices) {
-    //   devices.forEach(function(device) {
-    //     console.log(device.kind + ": " + device.label +
-    //                 " id = " + device.deviceId);
-    //   });
-    // })
-    // .catch(function(err) {
-    //   console.log(err.name + ": " + err.message);
-    // });
 
     io = io.connect(); // connect to socket.io server
 
@@ -71,7 +60,6 @@
       }
 
       if (data.type != "user_here") {
-        console.log(data);
         var message = JSON.parse(data.message);
         if (message.sdp) {
           rtcPeerConn.setRemoteDescription(new RTCSessionDescription(message.sdp), () => {
@@ -86,6 +74,7 @@
       }
     });
 
+    // SIGNALING
     function startSignaling() {
       displaySignalMessage("starting signaling...");
 
@@ -108,7 +97,6 @@
       // once remote stream arrives, show it in the remote video element
       rtcPeerConn.onaddstream = (evt) => {
         displaySignalMessage("going to add their stream...");
-        console.log(evt.stream);
         theirVideoArea.srcObject = evt.stream;
       };
 
@@ -119,12 +107,12 @@
         'video': true
       }, (stream) => {
         displaySignalMessage("going to display my stream...");
-        console.log(stream);
         myVideoArea.srcObject = stream;
         rtcPeerConn.addStream(stream);
       }, logError);
     }
 
+    // SDP
     function sendLocalDesc(desc) {
       rtcPeerConn.setLocalDescription(desc, () => {
         displaySignalMessage("sending local description");
@@ -158,6 +146,18 @@
     function displaySignalMessage(message) { // update innerHTML (like appending a message)
       signalingArea.innerHTML = signalingArea.innerHTML + "</br>" + message;
     }
+
+    // get devices
+    // navigator.mediaDevices.enumerateDevices()
+    // .then(function(devices) {
+    //   devices.forEach(function(device) {
+    //     console.log(device.kind + ": " + device.label +
+    //                 " id = " + device.deviceId);
+    //   });
+    // })
+    // .catch(function(err) {
+    //   console.log(err.name + ": " + err.message);
+    // });
 
   </script>
 </body>
