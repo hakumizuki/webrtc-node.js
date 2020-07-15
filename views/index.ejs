@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <title>WebRTC_sample_node.js</title>
-  <link rel="stylesheet" type="text/css" href="css/styles.css">
+  <link rel="stylesheet" type="text/css" href="styles.css">
   <script src="/socket.io/socket.io.js"></script> <!-- socket.io setting -->
 </head>
 
@@ -40,6 +40,11 @@
       }]
     };
     var rtcPeerConn;
+    var dataChannelOptions = {
+      ordered: false, // no guaranteed delivery, unreliable but faster
+      maxRetransmitTime: 1000,
+    };
+    var dataChannel;
 
 
     io = io.connect(); // connect to socket.io server
@@ -77,7 +82,11 @@
     function startSignaling() {
       displaySignalMessage("starting signaling...");
 
-      rtcPeerConn = new webkitRTCPeerConnection(configuration);
+      rtcPeerConn = new webkitRTCPeerConnection(configuration, null);
+      dataChannel = rtcPeerConn.createDataChannel('textMessages', dataChannelOptions);
+
+      dataChannel.onopen = dataChannelStateChanged;
+      rtcPeerConn.ondatachannel = receiveDataChannel;
 
       // send any ice candidates to the other peer
       // it will be triggered when RTCPeerConn got all information about peers(SDP & the number of needs)
@@ -103,13 +112,38 @@
       // get a local stream, show it in our video tag and add it to be sent
       navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
       navigator.getUserMedia({
-        'audio': true,
-        'video': true
+        'audio': false,
+        'video': {
+          mandatory: {
+            minWidth: 320,
+            maxWidth: 320,
+            minHeight: 180,
+            maxHeight: 180
+          }
+        }
       }, (stream) => {
         displaySignalMessage("going to display my stream...");
         myVideoArea.srcObject = stream;
         rtcPeerConn.addStream(stream);
       }, logError);
+    }
+
+    function dataChannelStateChanged() {
+      if (dataChannel.readyState === 'open') {
+        displaySignalMessage("Data Channel open");
+        dataChannel.onmessage = receiveDataChannelMessage;
+      }
+    }
+
+    function receiveDataChannel(event) {
+      displaySignalMessage("Receiving a data channel");
+      dataChannel = event.channel;
+      dataChannel.onmessage = receiveDataChannelMessage;
+    }
+
+    function receiveDataChannelMessage(event) {
+      displaySignalMessage("Incoming Message");
+      displayMessage("From DataChannel: " + event.data);
     }
 
     // SDP (OFFER & ANSWER)
@@ -136,6 +170,7 @@
 
     sendMessage.addEventListener('click', (ev) => {
       io.emit('send', {"author": myName.value, "message": myMessage.value, "room": ROOM});
+      dataChannel.send(myName.value + " says " + myMessage.value);
       ev.preventDefault();
     }, false);
 
@@ -158,7 +193,6 @@
     // .catch(function(err) {
     //   console.log(err.name + ": " + err.message);
     // });
-    //
 
   </script>
 </body>
