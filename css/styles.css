@@ -1,0 +1,11 @@
+.grayscale_filter {
+  -webkit-filter: saturate(0.03); /* 白黒 */
+  filter: saturate(0.03);
+  -webkit-transform: scaleX(-1); /* 反転 */
+  transform: scaleX(-1);
+}
+
+#profilePictureOutput {
+  -webkit-transform: scaleX(-1);
+  transform: scaleX(-1);
+}
