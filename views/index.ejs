@@ -22,6 +22,7 @@
     <div id="signalingArea">Signaling Messages:</br></div>
   </div>
 
+
   <script>
     // ELEMENTS
     var myVideoArea = document.getElementById('myVideoArea');
@@ -40,12 +41,11 @@
       }]
     };
     var rtcPeerConn;
-    var dataChannelOptions = {
-      ordered: false, // no guaranteed delivery, unreliable but faster
-      maxRetransmitTime: 1000,
-    };
-    var dataChannel;
-
+    // var dataChannelOptions = {
+    //   ordered: false, // no guaranteed delivery, unreliable but faster
+    //   maxRetransmitTime: 1000,
+    // };
+    // var dataChannel;
 
     io = io.connect(); // connect to socket.io server
 
@@ -82,11 +82,11 @@
     function startSignaling() {
       displaySignalMessage("starting signaling...");
 
-      rtcPeerConn = new webkitRTCPeerConnection(configuration, null);
-      dataChannel = rtcPeerConn.createDataChannel('textMessages', dataChannelOptions);
+      rtcPeerConn = new webkitRTCPeerConnection(configuration);
+      // dataChannel = rtcPeerConn.createDataChannel('textMessages', dataChannelOptions);
 
-      dataChannel.onopen = dataChannelStateChanged;
-      rtcPeerConn.ondatachannel = receiveDataChannel;
+      // dataChannel.onopen = dataChannelStateChanged;
+      // rtcPeerConn.ondatachannel = receiveDataChannel;
 
       // send any ice candidates to the other peer
       // it will be triggered when RTCPeerConn got all information about peers(SDP & the number of needs)
@@ -128,23 +128,23 @@
       }, logError);
     }
 
-    function dataChannelStateChanged() {
-      if (dataChannel.readyState === 'open') {
-        displaySignalMessage("Data Channel open");
-        dataChannel.onmessage = receiveDataChannelMessage;
-      }
-    }
+    // function dataChannelStateChanged() {
+    //   if (dataChannel.readyState === 'open') {
+    //     displaySignalMessage("Data Channel open");
+    //     dataChannel.onmessage = receiveDataChannelMessage;
+    //   }
+    // }
 
-    function receiveDataChannel(event) {
-      displaySignalMessage("Receiving a data channel");
-      dataChannel = event.channel;
-      dataChannel.onmessage = receiveDataChannelMessage;
-    }
+    // function receiveDataChannel(event) {
+    //   displaySignalMessage("Receiving a data channel");
+    //   dataChannel = event.channel;
+    //   dataChannel.onmessage = receiveDataChannelMessage;
+    // }
 
-    function receiveDataChannelMessage(event) {
-      displaySignalMessage("Incoming Message");
-      displayMessage("From DataChannel: " + event.data);
-    }
+    // function receiveDataChannelMessage(event) {
+    //   displaySignalMessage("Incoming Message");
+    //   displayMessage("From DataChannel: " + event.data);
+    // }
 
     // SDP (OFFER & ANSWER)
     function sendLocalDesc(desc) {
@@ -170,7 +170,7 @@
 
     sendMessage.addEventListener('click', (ev) => {
       io.emit('send', {"author": myName.value, "message": myMessage.value, "room": ROOM});
-      dataChannel.send(myName.value + " says " + myMessage.value);
+      // dataChannel.send(myName.value + " says " + myMessage.value);
       ev.preventDefault();
     }, false);
 
